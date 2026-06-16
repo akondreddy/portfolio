@@ -1,114 +1,105 @@
-// ===== WINDOW MANAGER =====
-
-const windows = ['about', 'links', 'process', 'contact'];
-const windowStates = {};
-let zCounter = 10;
-
-// Init state
-windows.forEach(id => {
-  windowStates[id] = { open: false, minimized: false, maximized: false };
+// ===== STATE =====
+const WIN_IDS = ['about', 'links', 'work', 'contact'];
+const state = {};
+WIN_IDS.forEach(id => {
+  state[id] = { open: false, minimized: false, maximized: false };
 });
 
+let zTop = 100;
+
+// ===== OPEN =====
 function openWindow(id) {
   const el = document.getElementById('window-' + id);
-  const state = windowStates[id];
+  const s = state[id];
 
-  if (state.open && !state.minimized) {
+  if (s.open && !s.minimized) {
     focusWindow(id);
     return;
   }
 
-  state.open = true;
-  state.minimized = false;
+  s.open = true;
+  s.minimized = false;
   el.classList.add('active');
   el.classList.remove('minimized');
-  focusWindow(id);
   removeTaskbarBtn(id);
 
-  // Animate in
+  // Pop-in animation
   el.style.opacity = '0';
-  el.style.transform = 'scale(0.96) translateY(8px)';
+  el.style.transform = 'scale(0.94) translateY(12px)';
   requestAnimationFrame(() => {
-    el.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+    el.style.transition = 'opacity 0.18s ease, transform 0.18s ease';
     el.style.opacity = '1';
     el.style.transform = 'scale(1) translateY(0)';
+    setTimeout(() => { el.style.transition = ''; }, 200);
   });
 
-  el.addEventListener('mousedown', () => focusWindow(id));
+  focusWindow(id);
 }
 
+// ===== CLOSE =====
 function closeWindow(id) {
   const el = document.getElementById('window-' + id);
-  const state = windowStates[id];
-
-  el.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
+  el.style.transition = 'opacity 0.14s ease, transform 0.14s ease';
   el.style.opacity = '0';
-  el.style.transform = 'scale(0.95)';
-
+  el.style.transform = 'scale(0.96)';
   setTimeout(() => {
-    el.classList.remove('active', 'focused', 'maximized', 'minimized');
-    el.style.transform = '';
+    el.classList.remove('active', 'focused', 'maximized');
+    el.style.transition = '';
     el.style.opacity = '';
-    state.open = false;
-    state.minimized = false;
-    state.maximized = false;
+    el.style.transform = '';
+    Object.assign(state[id], { open: false, minimized: false, maximized: false });
     removeTaskbarBtn(id);
-  }, 150);
+  }, 140);
 }
 
+// ===== MINIMIZE =====
 function minimizeWindow(id) {
   const el = document.getElementById('window-' + id);
-  const state = windowStates[id];
-
-  el.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
+  el.style.transition = 'opacity 0.14s ease, transform 0.14s ease';
   el.style.opacity = '0';
-  el.style.transform = 'scale(0.92) translateY(20px)';
-
+  el.style.transform = 'scale(0.9) translateY(20px)';
   setTimeout(() => {
-    el.classList.add('minimized');
     el.classList.remove('active', 'focused');
-    el.style.transform = '';
+    el.style.transition = '';
     el.style.opacity = '';
-    state.minimized = true;
+    el.style.transform = '';
+    state[id].minimized = true;
     addTaskbarBtn(id);
-  }, 150);
+  }, 140);
 }
 
+// ===== MAXIMIZE =====
 function maximizeWindow(id) {
   const el = document.getElementById('window-' + id);
-  const state = windowStates[id];
-
-  if (state.maximized) {
+  const s = state[id];
+  if (s.maximized) {
     el.classList.remove('maximized');
-    state.maximized = false;
+    s.maximized = false;
   } else {
     el.classList.add('maximized');
-    state.maximized = true;
+    s.maximized = true;
     focusWindow(id);
   }
 }
 
+// ===== FOCUS =====
 function focusWindow(id) {
-  windows.forEach(w => {
-    document.getElementById('window-' + w).classList.remove('focused');
-  });
+  WIN_IDS.forEach(w => document.getElementById('window-' + w).classList.remove('focused'));
   const el = document.getElementById('window-' + id);
   el.classList.add('focused');
-  zCounter++;
-  el.style.zIndex = zCounter;
+  zTop++;
+  el.style.zIndex = zTop;
 }
 
 // ===== TASKBAR =====
 function addTaskbarBtn(id) {
-  const taskbar = document.getElementById('taskbar');
   if (document.getElementById('tb-' + id)) return;
-
   const btn = document.createElement('button');
   btn.className = 'taskbar-btn';
   btn.id = 'tb-' + id;
-  btn.textContent = id.charAt(0).toUpperCase() + id.slice(1);
+  btn.textContent = id;
   btn.onclick = () => restoreWindow(id);
-  taskbar.appendChild(btn);
+  document.getElementById('taskbar').appendChild(btn);
 }
 
 function removeTaskbarBtn(id) {
@@ -118,62 +109,57 @@ function removeTaskbarBtn(id) {
 
 function restoreWindow(id) {
   const el = document.getElementById('window-' + id);
-  const state = windowStates[id];
-
-  el.classList.remove('minimized');
+  state[id].minimized = false;
   el.classList.add('active');
-  state.minimized = false;
-
   el.style.opacity = '0';
-  el.style.transform = 'scale(0.96) translateY(8px)';
+  el.style.transform = 'scale(0.94) translateY(12px)';
   requestAnimationFrame(() => {
-    el.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+    el.style.transition = 'opacity 0.18s ease, transform 0.18s ease';
     el.style.opacity = '1';
     el.style.transform = 'scale(1) translateY(0)';
+    setTimeout(() => { el.style.transition = ''; }, 200);
   });
-
   focusWindow(id);
   removeTaskbarBtn(id);
 }
 
+// Click anywhere on window to focus
+WIN_IDS.forEach(id => {
+  document.getElementById('window-' + id).addEventListener('mousedown', () => focusWindow(id));
+});
+
 // ===== DRAG =====
-let dragging = null;
-let dragOffX = 0, dragOffY = 0;
+let dragging = null, offX = 0, offY = 0;
 
-function startDrag(e, id) {
-  const el = document.getElementById(id);
-  const state = windowStates[id.replace('window-', '')];
-  if (state && state.maximized) return; // don't drag maximized
+function startDrag(e, windowId) {
+  const id = windowId.replace('window-', '');
+  if (state[id].maximized) return;
 
-  dragging = el;
-  const rect = el.getBoundingClientRect();
-  dragOffX = e.clientX - rect.left;
-  dragOffY = e.clientY - rect.top;
-  focusWindow(id.replace('window-', ''));
-
-  document.addEventListener('mousemove', onDrag);
-  document.addEventListener('mouseup', stopDrag);
+  dragging = document.getElementById(windowId);
+  const rect = dragging.getBoundingClientRect();
+  offX = e.clientX - rect.left;
+  offY = e.clientY - rect.top;
+  focusWindow(id);
   e.preventDefault();
 }
 
-function onDrag(e) {
+document.addEventListener('mousemove', e => {
   if (!dragging) return;
-  const desktop = document.getElementById('desktop');
-  const dRect = desktop.getBoundingClientRect();
-
-  let x = e.clientX - dRect.left - dragOffX;
-  let y = e.clientY - dRect.top - dragOffY;
-
-  // Clamp to desktop bounds
-  x = Math.max(0, Math.min(x, dRect.width - dragging.offsetWidth));
-  y = Math.max(0, Math.min(y, dRect.height - 48 - dragging.offsetHeight));
-
+  const dw = document.getElementById('desktop').getBoundingClientRect();
+  let x = e.clientX - dw.left - offX;
+  let y = e.clientY - dw.top  - offY;
+  // Clamp so window stays on screen
+  x = Math.max(0, Math.min(x, dw.width  - dragging.offsetWidth));
+  y = Math.max(40, Math.min(y, dw.height - 60));
   dragging.style.left = x + 'px';
-  dragging.style.top = y + 'px';
-}
+  dragging.style.top  = y + 'px';
+});
 
-function stopDrag() {
-  dragging = null;
-  document.removeEventListener('mousemove', onDrag);
-  document.removeEventListener('mouseup', stopDrag);
+document.addEventListener('mouseup', () => { dragging = null; });
+
+
+
+/* ==== THEME MODIFIER ==== */
+function themeModify(id){
+  
 }
